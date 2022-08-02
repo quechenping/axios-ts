@@ -1,0 +1,11 @@
+{
+  "name": "axios-ts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/quechenping/axios-ts",
+  "author": "小阙 <que_chenping@163.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.24.0"
+  }
+}
