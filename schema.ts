@@ -3,7 +3,8 @@ import { APISchemaType, ApiType } from './type'
 export interface APISchemas extends APISchemaType {
   getUser: {
     request: {
-      id: number
+      name: string
+      password: string
     }
     response: {
       id: number
@@ -31,7 +32,7 @@ export interface APISchemas extends APISchemaType {
 
 export const apis: ApiType<APISchemas> = {
   getUser: {
-    path: 'GET /create/user',
+    path: 'POST api/getUser',
     headers: { 'x-f': 'xx' }
   },
   createUser: {
