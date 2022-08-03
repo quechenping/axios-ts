@@ -178,9 +178,9 @@ export const createRequestClient = <T extends APISchemaType>(
 
 `createRequestClient`用于创建axios实例，但是最终返回给客户端的应该是如下结构
 
-```json
+```js
 {
-  getUser:(params, options)=>{
+  "getUser":(params, options)=>{
   	client.request({
         url,
         method: method.toLowerCase(),
@@ -231,6 +231,92 @@ const attachAPI = <T extends APISchemaType>(
 ```
 
 
+
+### 集成axios-cancelToken
+
+解决竞态问题
+
+```typescript
+// 储存每个请求的取消函数和请求标识
+const cancelFns = new Map()
+
+// 取消被多次发起的请求，保留最后一个
+export const cancelAjax = (type: 'check' | 'remove' | 'removeAll', key: string) => {
+  switch (type) {
+    // 取消同类接口
+    case 'check':
+      cancelFns.get(key) && cancelFns.get(key)()
+      cancelAjax('remove', key)
+      break
+    // 缓存中删除同类接口
+    case 'remove':
+      cancelFns.delete(key)
+      break
+    // 取消所有接口
+    case 'removeAll':
+      cancelFns.forEach((fn, k) => {
+        fn()
+        cancelFns.delete(k)
+      })
+      break
+    default:
+      throw new Error('无效的取消类型')
+  }
+}
+```
+
+`key`为请求的`url`，根据`url`去cancel请求
+
+在axios实例中调整`request`和`response`方法
+
+```typescript
+type Options = {
+  isCancel?: boolean
+  [index: string]: any
+}
+
+type RequestConfig = AxiosRequestConfig & Options
+
+client.interceptors.request.use((config: RequestConfig) => {
+    // 设置cancelToken
+    try {
+      const { isCancel } = config
+      const key = getCancelToken(config.url)
+      // 如果接口设置了isCancel属性，则cancel队列中已存在的同接口
+      if (key) {
+        if (isCancel) {
+          cancelAjax('check', key)
+        }
+        config.cancelToken = setCancelToken(key)
+      }
+    } catch (e) {
+      throw new Error(`接口报错:${e}`)
+    }
+
+    return config
+  })
+
+  client.interceptors.response.use(
+    (res: AxiosResponse) => {
+      // 接口请求完毕删除队列中的cancelToken
+      const key = getCancelToken(res.config.url || '')
+      if (key) cancelAjax('remove', key)
+
+      return { data: res.data, error: res.status !== 200 }
+    },
+    (err) => {
+      if (err.code !== 'ERR_CANCELED') return { res: err.response, error: true }
+    }
+  )
+```
+
+示例：
+
+```typescript
+const res = http.getUser({id:123},{isCancel:true})
+```
+
+如上请求多次发起时，旧的请求会被cancel掉，若不配置`isCancel`则正常请求
 
 参考：
 

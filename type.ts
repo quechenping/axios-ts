@@ -1,4 +1,4 @@
-import { AxiosRequestHeaders, AxiosResponse } from 'axios'
+import { AxiosRequestHeaders, AxiosResponse, AxiosRequestConfig } from 'axios'
 
 /** 去除可索引签名 */
 type RemoveIndexSignature<Obj extends Record<string, any>> = {
@@ -38,7 +38,7 @@ export type CreateRequestConfig<T extends APISchemaType> = {
 // 自定义函数
 export type RequestFunc<P = Record<string, any> | void, R = any> = (
   params: P,
-  ...args: any[]
+  ...args: Options[]
 ) => Promise<R>
 
 // 客户端请求返回结构的类型约束
@@ -47,4 +47,12 @@ export type CreateRequestClient<T extends APISchemaType> = {
     RemoveIndexSignature<T>[K]['request'],
     AxiosResponse<RemoveIndexSignature<T>[K]['response']>
   >
+}
+
+// request请求config类型
+export type RequestConfig = AxiosRequestConfig & Options
+
+export type Options = {
+  isCancel?: boolean
+  [index: string]: any
 }
